@@ -35,8 +35,18 @@ Computes a weighted 0–100 lead score from firmographic and engagement data and
 
 ## Architecture
 
-Open the [visual project page](./index.html#architecture) for the flow derived from the sanitized export.
+The diagram below represents the sanitized template flow. External services, credentials, and environment-specific identifiers must be configured before execution.
 
+```mermaid
+flowchart TD
+    A["New lead webhook"] --> B["Normalize firmographic and engagement data"]
+    B --> C["Calculate factor scores"]
+    C --> D["Compute weighted final score"]
+    D --> E{"HOT, WARM, or COLD"}
+    E --> F["Route to matching rep or team"]
+    F --> G["Update CRM"]
+    F --> H["Notify Slack"]
+```
 
 ## Workflow
 
