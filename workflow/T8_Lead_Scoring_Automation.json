@@ -1,0 +1,496 @@
+{
+  "name": "T8_Lead_Scoring_Automation",
+  "nodes": [
+    {
+      "id": "1d540fdf-a079-446e-be9c-561b70db6805",
+      "name": "Note_641ed95f",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        50,
+        50
+      ],
+      "parameters": {
+        "content": "Created by Oyekola Ololade\nhttps://www.linkedin.com/in/ololade-oyekola-5b1797397/\nn8n Template Library - Gumroad",
+        "width": 300,
+        "height": 100,
+        "color": 4
+      }
+    },
+    {
+      "id": "0e2317c9-0488-43c4-94f9-26cd9664123c",
+      "name": "New Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "3eac4abb-26be-4d9f-b049-79bd4b4a26a9",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-scoring",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "3e4bf1e9-1038-4a5e-b67a-1c5d7065cb72",
+      "name": "Extract Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1121afd1-ce43-406d-a27e-68986f50e156",
+              "name": "company_size",
+              "value": "={{ $json.body.company_size }}",
+              "type": "string"
+            },
+            {
+              "id": "af6907e5-b95b-42c0-bf26-dffd6946c8fe",
+              "name": "budget",
+              "value": "={{ $json.body.budget }}",
+              "type": "string"
+            },
+            {
+              "id": "910971bb-96ac-49a4-83c2-59178dfc63fa",
+              "name": "timeline",
+              "value": "={{ $json.body.timeline }}",
+              "type": "string"
+            },
+            {
+              "id": "2a16dce5-d1f9-4b90-beb5-d76e19aa63ce",
+              "name": "engagement",
+              "value": "={{ $json.body.engagement_score || 0 }}",
+              "type": "string"
+            },
+            {
+              "id": "e32b79a1-f26b-4549-acb2-43d50a7e904f",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "4dc2e5b5-83df-4c70-8f4e-9f1c6825b278",
+              "name": "name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "18433a8d-ce22-450f-93f3-1081c059e4b5",
+      "name": "Calculate Score",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        650,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a4f97bf9-dd11-4abb-aacf-15943b29daba",
+              "name": "company_size_pts",
+              "value": "={{ Math.min(parseInt($json.company_size) / 10, 100) }}",
+              "type": "string"
+            },
+            {
+              "id": "de161915-209a-4031-b5d8-f55efb7a42cb",
+              "name": "budget_pts",
+              "value": "={{ Math.min(parseInt($json.budget.replace(/[^0-9]/g, '')) / 10000, 100) }}",
+              "type": "string"
+            },
+            {
+              "id": "865eea73-51c6-4fe1-89ca-3fe391e7005c",
+              "name": "timeline_pts",
+              "value": "={{ Math.max(0, 100 - (parseInt($json.timeline) * 2)) }}",
+              "type": "string"
+            },
+            {
+              "id": "c02d7b4f-312e-4439-bc81-4fa1315b4cd0",
+              "name": "engagement_pts",
+              "value": "={{ parseInt($json.engagement) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9ab7fd00-cb8b-4aad-888a-3a7c662fee84",
+      "name": "Final Score",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        850,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1704bd24-5bac-4731-87d7-3c19448bc6a0",
+              "name": "score",
+              "value": "={{ Math.round(($json.company_size_pts * 0.2) + ($json.budget_pts * 0.3) + ($json.timeline_pts * 0.25) + ($json.engagement_pts * 0.25)) }}",
+              "type": "string"
+            },
+            {
+              "id": "78847ce7-a5d0-4be7-87f0-9ff76b5efe77",
+              "name": "tier",
+              "value": "={{ $json.score >= 80 ? 'HOT' : $json.score >= 50 ? 'WARM' : 'COLD' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2a517093-dc63-4644-b7d1-0cb5146669b7",
+      "name": "Score Tier",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "78820cbc-f167-4d73-9b9e-197e16d23a3a",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "91357bba-b65f-45f2-970d-1fc76da8339a",
+      "name": "Assign HOT",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1250,
+        200
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0e54c6f1-1d63-4896-bce1-83e53e08cca1",
+              "name": "assigned_to",
+              "value": "sales_rep_1",
+              "type": "string"
+            },
+            {
+              "id": "d3e69939-bf47-421e-a065-3cdd19b6290a",
+              "name": "urgency",
+              "value": "immediate",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1742e671-ef17-4a57-aa8f-1fe6c487b3d8",
+      "name": "Assign WARM",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a602dad6-bcc2-451f-b082-a3199b41e808",
+              "name": "assigned_to",
+              "value": "sales_rep_2",
+              "type": "string"
+            },
+            {
+              "id": "909eb862-bed8-4d2b-aff0-0c8a11c6bc70",
+              "name": "urgency",
+              "value": "24h",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "475f1eeb-4705-46b1-83a7-45321592d5e1",
+      "name": "Assign COLD",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1250,
+        400
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dde98a9a-c62c-4c91-9a29-f4d185ecf6af",
+              "name": "assigned_to",
+              "value": "nurture_team",
+              "type": "string"
+            },
+            {
+              "id": "40ac8659-2ac0-4cd8-8125-368def1e7491",
+              "name": "urgency",
+              "value": "weekly",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "dfe44d68-45db-40e9-8c8b-f980a67f4920",
+      "name": "Update CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1450,
+        300
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.airtable.com/v0/YOUR_BASE_ID/Leads/RECORD_ID",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_AIRTABLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "{\"Score\": \"{{ $json.score }}\", \"Tier\": \"{{ $json.tier }}\", \"Assigned_To\": \"{{ $json.assigned_to }}\", \"Urgency\": \"{{ $json.urgency }}\"}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c27e9e02-9cb9-4143-84d2-c536277a13ed",
+      "name": "Notify Team",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1650,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_SLACK_WEBHOOK_URL",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": false,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=\"New \" + $json.tier + \" lead: \" + $json.name + \" (Score: \" + $json.score + \") Assigned to: \" + $json.assigned_to"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "40a33a4c-deb9-4d72-a211-2f35fc92bd68",
+      "name": "End",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1850,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "New Lead Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Score": {
+      "main": [
+        [
+          {
+            "node": "Final Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Score": {
+      "main": [
+        [
+          {
+            "node": "Score Tier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Tier": {
+      "main": [
+        [
+          {
+            "node": "Assign HOT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assign WARM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assign COLD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign HOT": {
+      "main": [
+        [
+          {
+            "node": "Update CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign WARM": {
+      "main": [
+        [
+          {
+            "node": "Update CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign COLD": {
+      "main": [
+        [
+          {
+            "node": "Update CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update CRM": {
+      "main": [
+        [
+          {
+            "node": "Notify Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Team": {
+      "main": [
+        [
+          {
+            "node": "End",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "Gumroad",
+    "Production",
+    "Template",
+    "Oyekola Ololade"
+  ],
+  "pinData": {},
+  "staticData": null
+}
